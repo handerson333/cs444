@@ -10,6 +10,10 @@ const int EATING_MAX_TIME = 9;
 const int THINKING_MIN_TIME = 1;
 const int THINKING_MAX_TIME = 20;
 
+void check_rng_type();
+int random_number_generator(int floor, int ceiling);
+int rng(int thinking);
+
 int rng(int thinking)
 {
     check_rng_type();
@@ -24,7 +28,7 @@ int rng(int thinking)
 
 
 //get rng type
-int check_rng_type()
+void check_rng_type()
 {
 	unsigned int eax;
 	unsigned int ebx;
@@ -48,7 +52,7 @@ int check_rng_type()
 		RDRAND_OR_MERSENNE = 0;
 	}
 
-
+    return;
 
 }
 

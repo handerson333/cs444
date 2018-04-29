@@ -1,5 +1,5 @@
 CC:=gcc
-CFLAGS:= -Wall -pthread
+CFLAGS:= -Wall -pthread -Wincompatible-pointer-types -Wno-pointer-sign
 
 concurrency2:
 	$(CC) dining_philosophers.c $(CFLAGS) -o dining_philosophers

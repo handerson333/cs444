@@ -3,8 +3,6 @@ Robert Hayden Anderson
 CS444 Operating Systems 2
 Prof: Kevin McGrath
 Concurrency assignment 2
-
-
 sources:
 http://pages.cs.wisc.edu/~remzi/Classes/537/Fall2008/Notes/threads-semaphores.txt
 https://stackoverflow.com/questions/14888027/mutex-lock-threads
@@ -22,9 +20,12 @@ https://oregonstate.instructure.com/courses/1671300/assignments/7246802#submit
 #include <time.h>
 #include "rng.h"
 
-void* func(void* person);
-void* philosopher_thread(void* philosopher_struct);
 
+
+//thread function for each philosopher
+void* philosopher_thread(void* person);
+
+//thread for each fork
 pthread_t seat[5];
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t fork_0 = PTHREAD_MUTEX_INITIALIZER;
@@ -32,6 +33,7 @@ pthread_mutex_t fork_1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t fork_2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t fork_3 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t fork_4 = PTHREAD_MUTEX_INITIALIZER;
+//philosopher struct
 typedef struct philosopher
 {
     char name[20];
@@ -41,43 +43,56 @@ typedef struct philosopher
     int fork_right_number;
     void (*func)(struct philosopher person);
 }philosopher;
+//main function
 int main() 
 {
-    philosopher einstein = {"Einstein ", fork_4, fork_0, 4, 0, func};
-    philosopher aristotle = {"Aristotle", fork_0, fork_1, 0, 1, func};
-    philosopher plato = {"Plato    ", fork_1, fork_2, 1, 2, func};
-    philosopher socrates = {"Socrates ", fork_2, fork_3, 2, 3, func};
-    philosopher marx = {"Karl Marx", fork_3, fork_4, 3, 4, func};
+    //initialize each philsopher struct
+    philosopher einstein = {"Einstein ", fork_4, fork_0, 4, 0, philosopher_thread};
+    philosopher aristotle = {"Aristotle", fork_0, fork_1, 0, 1, philosopher_thread};
+    philosopher plato = {"Plato    ", fork_1, fork_2, 1, 2, philosopher_thread};
+    philosopher socrates = {"Socrates ", fork_2, fork_3, 2, 3, philosopher_thread};
+    philosopher marx = {"Karl Marx", fork_3, fork_4, 3, 4, philosopher_thread};
+    //put all philosophers into one array
     philosopher *all[5] = {&einstein, &aristotle, &plato, &socrates, &marx};
+    //make the thread for each philosopher
     for (int i = 0; i < 5; i++){
-        pthread_create(&seat[i], NULL, func, all[i]);
+        pthread_create(&seat[i], NULL, philosopher_thread, all[i]);
     }
+    //join all the threads
     for (int i = 0; i < 5; i++){
         pthread_join(seat[i], NULL);
     }
 	return 0;
 }
 
-void* func(void* person)
+//the entire program really...
+
+void* philosopher_thread(void* person)
 {
+    //recast the struct back to a struct
     philosopher* ph = (struct philosopher*)person;
     int x = 0;
 	int think = 0;
 	while(1) {
+        //if not thinking
 		if(!think){
 			while(1) {
+                //continuously try to get a lock
 				if(pthread_mutex_trylock(&lock) == 0) {
 					x = rng(1);
 					pthread_mutex_unlock(&lock);
-					printf("%sis thinking for %d seconds\n", ph->name, x);
+					printf("%s is thinking for %d seconds\n", ph->name, x);
 					sleep(x);
 					break;
 				}	
 			}
 		}
+        //try to pick up left fork
 		if(pthread_mutex_trylock(&ph->fork_left_mutex) == 0) {
 				printf("%s picks up fork %d\n", ph->name, ph->fork_left_number );
+            //if you can pick up left, try to pick up right fork
 			if(pthread_mutex_trylock(&ph->fork_right_mutex) == 0) {
+                //can pick up bothforks
 				printf("%s picks up fork %d\n", ph->name, ph->fork_right_number );
 				if(pthread_mutex_trylock(&lock) == 0) {
 					x = rng(0);
@@ -90,14 +105,18 @@ void* func(void* person)
                     pthread_mutex_unlock(&ph->fork_left_mutex);
 					pthread_mutex_unlock(&ph->fork_right_mutex);
 				}
-			} else {
+			} 
+            //If youre done eating, put down both forks
+            else {
 				think = 1;
 				printf("%s puts down fork %d\n", ph->name, ph->fork_left_number);
 				printf("%s puts down fork %d\n", ph->name, ph->fork_right_number );
                 pthread_mutex_unlock(&ph->fork_left_mutex);
 				pthread_mutex_unlock(&ph->fork_right_mutex);
 			}
-		} else {
+        }
+        //put the left fork back down if you can't pick up both forks 
+        else {
 			think = 1;	
 			printf("%s puts down fork %d\n", ph->name, ph->fork_left_number );
             pthread_mutex_unlock(&ph->fork_left_mutex);

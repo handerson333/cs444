@@ -1,7 +1,7 @@
 CC:=gcc
 CFLAGS:= -w -pthread -std=c99
-sharedResource:
-	$(CC) sharedResource.c $(CFLAGS) -o sharedResource
+categorical_exclusion:
+	$(CC) categorical_exclusion.c $(CFLAGS) -o categorical_exclusion
 
 clean:
-	rm sharedResource
+	rm categorical_exclusion

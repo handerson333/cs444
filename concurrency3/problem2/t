@@ -3,4 +3,4 @@ make clean
 
 make
 
-./sharedResource
+./categorical_exclusion

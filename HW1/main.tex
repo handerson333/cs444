@@ -1,0 +1,263 @@
+
+\documentclass[draftclsnofoot, onecolumn, compsoc, 10pt]{IEEEtran}
+\usepackage{lscape}
+\usepackage{rotating}
+\usepackage{titling}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{graphicx}
+\usepackage{placeins}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{url}
+\usepackage{natbib}
+\usepackage{setspace}
+\geometry{textheight=9.5in, textwidth=7in}
+\graphicspath{ {images/} }
+\linespread{1.0}
+\parindent=0.0in
+\parskip=0.2in
+
+\title{OS 2 Assignment 1}
+\author{Oregon State University\\CS 444\\2018\\\\Prepared By:\\Hayden
+Anderson\\Thomas Noelcke\\James Zeng\\}
+
+
+\def \CapstoneTeamNumber{		41	}
+\def \CapstoneProjectName{		Assignment 1 }
+
+
+
+
+\newcommand{\NameSigPair}[1]{\par
+\makebox[2.75in][r]{#1} \hfil 	\makebox[3.25in]{\makebox[2.25in]{\hrulefill} \hfill		\makebox[.75in]{\hrulefill}}
+\par\vspace{-12pt} \textit{\tiny\noindent
+\makebox[2.75in]{} \hfil		\makebox[3.25in]{\makebox[2.25in][r]{Signature} \hfill	\makebox[.75in][r]{Date}}}}
+
+\begin{document}
+\begin{titlepage}
+    \pagenumbering{gobble}
+    \begin{singlespace}
+        \hfill
+        \par\vspace{.2in}
+        \centering
+        \scshape{
+            \huge OS 2 \par
+            {\large\today}\par
+            \vspace{1in}
+            \textbf{\Huge\CapstoneProjectName}\par
+            \vspace{1in}
+            {\large Prepared by }\par
+            Group\CapstoneTeamNumber\par
+            \vspace{5pt}
+            \vspace{20pt}
+        }
+        \vfill
+    \end{singlespace}
+\end{titlepage}
+\newpage
+\pagenumbering{arabic}
+\clearpage
+\tableofcontents
+\pagebreak
+
+
+\section{Commands Log}
+\begin{enumerate}
+  \item mkdir /scratch/spring2018/41
+	\item cd /scratch/spring2018/41
+
+  \item git clone --config core.sharedRepository=true -b v3.19.2 --single-branch http://git.yoctoproject.org/cgit.cgi/linux-yocto
+  \item cd linux-yocto
+	\item git branch os2
+	\item git branch hw1
+	\item git checkout hw1
+  \item cp /scratch/spring2018/files/bzImage-qemux86.bin
+  \item cp /scratch/spring2018/files/core-image-lsb-sdk-qemux86.ext4
+	\item source /scratch/opt/environment-setup-i586-poky-linux
+	
+	\item cd ..; cd ..;
+	\item setfacl -R -m "u:anderrob:wrx" 41
+	\item setfacl -R -m "u:zengja:wrx" 41
+	\item cd 41/linux-yocto
+	
+  \item make menuconfig
+
+  \item make -j4 all
+  \item \textbf{qemu-system-i386 -gdb tcp::5541 -S -nographic -kernel bzImage-qemux86.bin -drive file=core-image-lsb-sdk-qemux86.ext4,if=virtio -enable-kvm -net none -usb -localtime --no-reboot --append "root=/dev/vda rw console=ttyS0 debug"}
+
+  \item gdb -tui
+  \item target remote:5541
+  \item Continue
+\end{enumerate}
+
+
+
+
+\section{Qemu flags}
+
+	\subsection{-gdb}
+		This flag specifies that the kernel should wait until a gdb connection on the device provided in the parameter. Connections can be made via TCP, UDP, pseudo TTY or Stdio. Essentially this flag prevents the kernel from starting unless there is a connection via gdb.\\
+
+	\subsection{-S}
+		This flag will prevent the CPU from starting at start up but rather you must make a continue command in the monitor. -S essentially forces you to restart the process once the GDB connection has been connected to the process.\\
+
+
+	\subsection{-nographic}
+	% Normally, if QEMU is compiled with graphical window support, it
+	%            displays output such as guest graphics, guest console, and the QEMU
+	%            monitor in a window. With this option, you can totally disable
+	%            graphical output so that QEMU is a simple command line application.
+	%            The emulated serial port is redirected on the console and muxed
+	%            with the monitor (unless redirected elsewhere explicitly).
+	%            Therefore, you can still use QEMU to debug a Linux kernel with a
+	%            serial console. Use C-a h for help on switching between the console
+	%            and monitor.
+		This flag states that QEMU should be run as a command line application with no graphical output. QEMU is normally compiled with graphical window support so that it can show guest graphics and the gust console and the QEMU monitor in a window. This flag disables those options and causes the output from QEMU to be redirected to the console unless redirected somewhere else. This allows you to use QEMU with a serial console and allows you to debug a Linux kernel with a serial console.\\
+
+
+	\subsection{-kernel}
+	% bzImage
+	%            Use bzImage as kernel image. The kernel can be either a Linux
+	%            kernel or in multiboot format.
+		This flag specifies how the kernel will be booted. Either the kernel will be booted from an image or the kernel can be set up for some sort of multiform environment. For the current command we want to boot the kernel from an image so we use the option following the -kernel flag to specify which image we would like to use.\\
+
+	\subsection{-drive}
+	% -drive option[,option[,option[,...]]]
+	%            Define a new drive. This includes creating a block driver node (the
+	%            backend) as well as a guest device, and is mostly a shortcut for
+	%            defining the corresponding -blockdev and -device options.
+
+	%            -drive accepts all options that are accepted by -blockdev. In
+	%            addition, it knows the following options:
+		This flag tells QEMU how we would like to define drives for the VM to use. This allows us to use various different drive configurations along with defining different options as to how that drive will behave. In this example we only used the file option and the if option. The file option lets us set what disk image to use with this drive. If for some reason the file name contains a comma you should escape the comma using another comma (,,). The if option allows us to define how the drive is connected to the VM. This allows us several options including floppy drive, pflash virtio and several others. There are also many other options for this flag that let us define a lot of the behavior of the drive the vm will be using. Shown below is a list of the different options you can use with this command.\\
+
+		\textbf{Options:}
+		\begin{itemize}
+			\item \textbf{file:} Allows us to specify an image that the vm will use at runtime.
+			\item \textbf{if:} Allows us to set the type of interface that this drive will be at runtime.\\
+			\item \textbf{bus, unit:} This option defines where this drive is connected by defining bus numbers and unit ids.\\
+			\item \textbf{index:} This option defines where the vm is connected to the drive via defining an index.\\
+			\item \textbf{media:} This option defines weather this disk is a disk or a cdrom.\\
+			\item \textbf{cyls, heads, secs, trans:} Deprecated options actually defined in a different flag.\\
+			\item \textbf{cache:} This option defines the caching behavior and controls how the host cache is used to access block data. This option can be set to none, writeback, unsafe, directsync or writethrough.
+			\item \textbf{snapshot:} This option is on or off and controls snapshot mode for the given drive.\\
+			\item \textbf{aio:} This defines the behavior for threads between either disk I/O or Linux AIO.\\
+			\item \textbf{format:} This option is used to specify what disk format will be used rather as opposed to detecting the format.\\
+			\item \textbf{serial:} This option specifies the controllers PCI address if the if option is set to virio. However, this option is deprecated and the -device flag should be used to set this behavior instead.\\
+			\item \textbf{werror, rerror:} These options specify what should be done when write errors and read errors occur. The Actions are ignore, stop, report, or enospc.\\
+			\item \textbf{copy-on-read:} This flag sets the copy-on-read option to either on or off. This enables weather to copy read backing file sectors into the image file.\\
+            \item \textbf{bps, bps\_rd bps\_wr:} This option specifies the bandwidth throttling limits in bytes per second. You can set this limit for all request types or you can specify different limits for reads and writes.\\
+			\item \textbf{iops, iops\_rd, iops\_wr:} This option specifies the bursts ion request per second. You can set the rate for all requests or for read and write separately.\\
+			\item \textbf{iops\_max, iops\_max\_rm, iops\_max\_wr:} This option sets the max bursts in requests per second. This can be set for all request or you can set the read and write speeds separately.\\
+			\item \textbf{iops\_size:} This option allows every byte of a request to count as a new request when making calculations for iops purposes.\\
+			\item \textbf{group:} This sets up the vm to join a throttling group based on the name placed after the option. All the drives that are in the same group are accounted for together.\\
+		\end{itemize}
+
+	\subsection{-enable-kvm}
+
+	%        -enable-kvm
+	%            Enable KVM full virtualization support. This option is only
+	%            available if KVM support is enabled when compiling.
+		The enables virtualization support for our kernel. It sets up our virtual machine for our kernel to be run on.
+
+	\subsection{-net}
+	% -net none
+	%            Indicate that no network devices should be configured. It is used
+	%            to override the default configuration (-net nic -net user) which is
+	%            activated if no -net options are provided.
+    Tells the virtual machine to not set up a network configuration.
+	\subsection{-usb}
+	% -usb
+	%            Enable the USB driver (if it is not used by default yet).
+    Allows the kernel to use the USB driver.
+	\subsection{-localtime}
+	% -rtc [base=utc|localtime|date][,clock=host|vm][,driftfix=none|slew]
+	%            Specify base as "utc" or "localtime" to let the RTC start at the
+	%            current UTC or local time, respectively. "localtime" is required
+	%            for correct date in MS-DOS or Windows. To start at a specific point
+	%            in time, provide date in the format "2006-06-17T16:01:21" or
+	%            "2006-06-17". The default base is UTC.
+
+	%            By default the RTC is driven by the host system time. This allows
+	%            using of the RTC as accurate reference clock inside the guest,
+	%            specifically if the host time is smoothly following an accurate
+	%            external reference clock, e.g. via NTP.  If you want to isolate the
+	%            guest time from the host, you can set clock to "rt" instead.  To
+	%            even prevent it from progressing during suspension, you can set it
+	%            to "vm".
+
+	%            Enable driftfix (i386 targets only) if you experience time drift
+	%            problems, specifically with Windows' ACPI HAL. This option will try
+	%            to figure out how many timer interrupts were not processed by the
+	%            Windows guest and will re-inject them.
+    	This flag sets up our kernel using the local time.
+	\subsection{- - no-reboot}
+	% -no-reboot
+	%            Exit instead of rebooting.
+    	This flag makes the kernel exit instead of rebooting
+	\subsection{- - append}
+	%  -append cmdline
+	%            Use cmdline as kernel command line
+    	This flag allows the use of a command line as the kernel's command line
+
+	\subsection{Note:}
+		These definitions are reiterated from QEMU manpage\cite{qemu}.
+
+\section{Questions}
+\subsection{What do you think the main point of this assignment is?}
+To get acquainted with our group and be able to start the required VM for what we need for the rest of the term. This assignment will also provide an important reference for future assignments.\\
+\subsection{How did you personally approach the problem? Design decisions, algorithm, etc.}
+We started looking by looking at the assignment sheet. By doing so we set up our git repository on the class site. Our next problem was finding out how to give everyone access to this repository. We looked online and found a script that gave full access to all group members. Setting up the kernel was primarily following the instructions given on the assignment sheet. To find out what flags did we used the qemu user manual to determine the meaning of each flag.\\
+\subsection{How did you ensure your solution was correct? Testing details, for instance.}
+To ensure our solution was correct we built the kernel and tested to see if it ran correctly as a group. We then broke off individually and tested to see if we still got the same results using the command list we created as a group. Through out this process we updated any commands \\
+\subsection{What did you learn?}
+We learned how to set up and run our kernel. We also learned the function of each flag of the qemu command that was given to us.\\
+
+%Commands Used to make this Section:
+%git log os2...hw1
+%This command will show only history for that branch.
+%creates tech document:
+%Currently we do not have a script to do this doing some research to find one.
+\section{Version Control Log}
+		\begin{center}
+			\textbf{Commit:} 89c0eafaf9da57fc130541d358497fe230199107
+			\textbf{Author:} Thomas Noelcke <noelcket@oregonstate.edu>
+			\textbf{Date:} Wed Apr 11 16:25:45 2018 \-0700
+			\textbf{Comment:} Added the image to the repo.
+		\end{center}
+
+
+\section{Work Log}
+		\begin{center}
+			\begin{tabular}{||c c c c ||}
+			\hline
+			Name & Task & Date & Total Time\\[0.5ex]
+			\hline \hline
+			Thomas Noelcke & set up work log & 4/8 & 0.25 hours\\
+			\hline
+			Hayden, Thomas, James & Worked on setting up the Kernel & 4/8 & 2 hours\\
+			\hline
+			Hayden, Thomas & Worked on Latex template for assignments & 4/8 & 1 hour\\
+      \hline
+			Thomas & Started working on Flags section & 4/8 & 1 hour\\
+			\hline
+			Hayden & Worked on Flags Section & 4/11 & 1 hour\\
+			\hline
+      James & Finished up Flags sections/remaining Questions & 4/11 & 1 hour\\
+      \hline
+			Thomas & Fixing some errors working on gitlog & 4/11 & 1 hour\\
+			\hline
+			Hayden and Thomas & Final review and revisions & 4/13 & 1 hours\\
+			\hline
+			Thomas & Fixing some build errors in the tex file & 4/13 & 1 hours\\
+			\hline
+			\end{tabular}
+		\end{center}
+	
+
+
+\newpage
+\bibliography{References}
+
+
+\end{document}

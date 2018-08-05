@@ -1,0 +1,24 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{cs444 HW4 design}
+\author{Hayden Anderson, Thomas Noelcke, James Zeng }
+\date{June 2018}
+
+\begin{document}
+
+\maketitle 
+
+\section{Introduction}
+The following sections discuss the best fit and first fit algorithms in memory management and how we implemented them for this assignment. We also discuss how we plan on testing these algorithms.\\
+
+\section{First Fit}
+For the first fit algorithm, the memory allocates the first page available that is large enough for the payload to fit. The first first algorithm is already implemented and used in the SLOB slab. If no current page is large enough, it will create a new page that is big enough to accommodate the payload.\\
+
+\section{Best Fit}
+For the best fit algorithm we are going to group the memory needed by a small, medium, and large size. When a payload comes in, we check the size of the memory it needs and place the it into the corresponding page size needed for the slab.\\
+
+\section{Testing}
+To test these algorithms we will use a simple for loop that allocates memory of random sizes. It will create a large amount of allocations and then run our amount calculator. The amount calculator will use system calls to find the amount of memory allocated and divide that by the total amount of memory in use. This will give a percentage of performance for each algorithm.\\
+
+\end{document}

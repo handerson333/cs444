@@ -1,0 +1,212 @@
+\documentclass[draftclsnofoot, onecolumn, compsoc, 10pt]{IEEEtran}
+\usepackage{lscape}
+\usepackage{rotating}
+\usepackage{titling}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{graphicx}
+\usepackage{placeins}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{natbib}
+\usepackage{setspace}
+\geometry{textheight=9.5in, textwidth=7in}
+\graphicspath{ {images/} }
+\linespread{1.0}
+\parindent=0.0in
+\parskip=0.2in
+
+\title{OS 2 Assignment 1}
+\author{Oregon State University\\CS 444\\2018\\\\Prepared By:\\Hayden
+Anderson\\Thomas Noelcke\\James Zeng\\}
+
+
+\def \CapstoneTeamNumber{		41	}
+\def \CapstoneProjectName{		Assignment 3 }
+
+
+
+
+\newcommand{\NameSigPair}[1]{\par
+\makebox[2.75in][r]{#1} \hfil 	\makebox[3.25in]{\makebox[2.25in]{\hrulefill} \hfill		\makebox[.75in]{\hrulefill}}
+\par\vspace{-12pt} \textit{\tiny\noindent
+\makebox[2.75in]{} \hfil		\makebox[3.25in]{\makebox[2.25in][r]{Signature} \hfill	\makebox[.75in][r]{Date}}}}
+
+\begin{document}
+\begin{titlepage}
+    \pagenumbering{gobble}
+    \begin{singlespace}
+        \hfill
+        \par\vspace{.2in}
+        \centering
+        \scshape{
+            \huge OS 2 \par
+            {\large\today}\par
+            \vspace{1in}
+            \textbf{\Huge\CapstoneProjectName}\par
+            \vspace{1in}
+            {\large Prepared by }\par
+            Group\CapstoneTeamNumber\par
+            \vspace{5pt}
+            \vspace{20pt}
+        }
+        \vfill
+    \end{singlespace}
+    \begin{abstract}
+        In this assignment we will be creating an encrypted block device. This device will be built separately and be included in the kernel as a kernel module. The encrypted block device will have two modes; read and write. We will develop the module locally and import it into the kernel and mount it on the fly.\\
+    \end{abstract}
+\end{titlepage}
+\newpage
+\pagenumbering{arabic}
+\clearpage
+\tableofcontents
+\pagebreak
+
+\section{Solution Design}
+    For this solution we started off by taking the advice offered in the assignment write up. We followed the advice given and found an already developed block device driver as to not recreate the wheel. We chose to use the Simple Block Driver (SBD) that we found on a blog by Pat Patterson. We then studied this device driver and spent time figuring out where the reads and the writes occur. We looked for these occurences because we knew that it would be where we would need to encrypt and decrypt the data that will be written to and read from the disk. Once we identified where the reads and writes were happening, we were able to identify the places we need to do the encryption and decryption. Once we knew where we needed to preform the encryption and decryption, it was fairly simple to encrypt and decrypt the data based on examples found in the kernel. The final step of our design was to use printk statements to ensure that the encryption and decryption were being handled correctly. We also kept a log of each command needed to build the module and import it correctly. We continuously updated and improved the log so that it was more correct with each iteration.\\
+
+\section{questions}
+    \subsection{What Do you think the main point of this assignment is?}
+    There were several points to this assignment. The first of which was to get familiar with block drivers. The point of this assignment was certainly not to write our own device driver however this assignment still gave us a chance to understand and learn about block drivers. The second main point of this assignment was to allow us to gain some experience using kernel modules. This includes building the module, importing it into the kernel and mounting this module on the fly. The final point of this assignment was to learn how to use the crypto service provided by the kernel.\\
+
+    \subsection{How did you personally approach the problem? Design decisions, algorithm, etc.}
+    We started by reading the Linux Device Driver (LDD3) resources to see how they implemented drivers to encrypt block devices on older kernel versions. Then we found a source online that had a majority of the functionality implemented already. We then modified functions that allowed us to encrypt block devices and decrypt them while reading.
+    \subsection{How did you ensure your solution was correct? Testing details, for instance. Ensure this is written in a way that the TA's can follow to ensure correctness.}
+        \begin{enumerate}
+            \item First, we need to source the necessary configuration file.
+
+\begin{lstlisting}
+source /scratch/opt/environment-setup-i586-poky-linux
+\end{lstlisting}
+
+            \item clean the kernel to ensure a sanitary environment.
+\begin{lstlisting}
+make clean
+\end{lstlisting}
+            \item make the kernel.
+\begin{lstlisting}
+make -j4 all
+\end{lstlisting}
+            \item run the kernel.
+\begin{lstlisting}
+qemu-system-i386 -redir tcp:5541::22 -nographic -kernel arch/x86/boot/bzImage -drive
+file=core-image-lsb-sdk-qemux86.ext4 -enable-kvm -usb -localtime --no-reboot --append
+"root=/dev/hda rw console=ttyS0 debug"
+\end{lstlisting}
+
+	\item login to another instance of the os2 server and navigate back to our repository.
+\begin{lstlisting}
+cd /scratch/spring2018/41/linux-yocto/
+\end{lstlisting}
+	\item move to our SBD\_ENC folder.
+\begin{lstlisting}
+cd SBD\_ENC
+\end{lstlisting}
+
+\item make the block device driver.
+\begin{lstlisting}
+make
+\end{lstlisting}
+
+\item copy the module over to the running kernel.
+\begin{lstlisting}
+scp -P 5541 sbd.ko root@localhost:~
+\end{lstlisting}
+\item go back to the kernel's terminal.
+\item set up and insert the kernel module containing your encrypted block device.
+\begin{lstlisting}
+cd ~
+insmod sbd.ko
+shred -z /dev/sbd0
+mkfs.ext2 /dev/sbd0
+mount /dev/sbd0 /mnt
+lsmod
+\end{lstlisting}
+\item finally check test that the module is working.
+\begin{lstlisting}
+echo "This is my awesome test."
+touch /mnt/testfile
+ls -la /mnt
+
+echo "Insert Test Data"
+echo "This is my awsome test" > /mnt/testfile
+cat /mnt/testfile
+
+echo "Search for test data in module"
+grep -a "Test Data" /dev/sbd0
+
+echo "display the contents of the module"
+cat /dev/sbd0
+
+echo "Display the test file"
+cat /mnt/testfile
+
+echo "Delete test file"
+rm /mnt/testfile
+\end{lstlisting}
+
+\item
+\begin{lstlisting}
+umount /dev/sbd0
+rmmod sbd.ko
+lsmod
+\end{lstlisting}
+
+        \end{enumerate}
+    \subsection{What did you learn?}
+    We learned how the kernel reads and writes encrypted data from a block device. We also learned how different kernels may implement the process of reading and writing encrypted data differently. While kernels can be very different, most block devices have many similarities and may be modified to fit the specific kernel you are working with.
+
+\newpage
+\begin{landscape}
+
+\section{Version Control log}
+    \begin{center}
+        \begin{tabular}{||c c c ||}
+            \hline
+            Author & Date & Message\\
+            \hline \hline
+            James Zeng zengja@oregonstate.edu  &
+            Fri May 18 20:33:55 2018 -0700 &
+            Worked on getting block device up and working.\\
+            \hline
+            Thomas Noelcke noelcket@oregonstate.edu & 
+            Tue May 15 19:45:56 2018 -0700 &
+            Got Block device working.\\
+            \hline
+        \end{tabular}
+    \end{center}
+
+\section{Work Log}
+    	\begin{center}
+			\begin{tabular}{||c c c c ||}
+			\hline
+			Name & Task & Date & Total Time\\[0.5ex]
+			\hline \hline
+			Thomas & Set up document  & 5/15/2018 & 0.5 Hours\\
+			\hline
+			Thomas and James  & Work on Encrypted Block device design and Implementation & 5/15/2018 & 2.0 Hours\\
+			\hline
+			Thomas and James & Work on debugging encrypted block device & 5/15/2018 & 1.0 Hours\\
+			\hline
+			Thomas, James, Hayden & worked on getting write up started. & 5/17/2018 & 2.0 hours.\\
+			\hline
+			Thomas & Started filling out sections in the write up. & 5/17/2018 & 1.0 hours.\\
+			\hline
+			Thomas & Wrote the design section along with the point of the assignment question. & 5/18/2018 & 1.0 Hour\\
+			\hline
+			Thomas & Created git log section and filled in table. & 5/20 & 0.5 Hours\\
+			\hline
+                        James & Answered the remaining questions on the report. & 5/20/2018 & 0.5 Hours\\
+                        \hline
+                        Hayden & Edited entire report for accuracies and grammar & 5/23/2018 & 1.0 Hour\\
+                        \hline
+                        Hayden & Went through steps one at a time and fixed steps an added some necessary steps & 5/25/2018 & 2.0 Hours\\
+                        \hline
+			\end{tabular}
+		\end{center}
+\end{landscape}
+\newpage
+
+
+\end{document}
